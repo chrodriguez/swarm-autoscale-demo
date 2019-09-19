@@ -90,3 +90,6 @@ http://127.0.0.1:9090 y escribir nosotros las expresiones en cuestión que son:
 
 * _Cantidad de requerimientos de los últimos 30 segundos:_ `sum(rate(haproxy_frontend_http_requests_total[30s]))`
 * _Cantidad de backends del load balancer:_ `sum(rate(haproxy_frontend_http_requests_total[30s]))`
+
+> El acceso directo a ver las consultas escritas [click en el siguiente
+> enlace](http://127.0.0.1:9090/graph?g0.range_input=1h&g0.expr=sum(rate(haproxy_frontend_http_requests_total%5B30s%5D))&g0.tab=1&g1.range_input=1h&g1.expr=max(haproxy_backend_current_server)&g1.tab=1)
