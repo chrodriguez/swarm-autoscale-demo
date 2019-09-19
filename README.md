@@ -13,7 +13,8 @@ docker swarm init
 
 > Podemos verificar el modo en el que nuestro daemon docker se encuenta
 > funcionando usando `docker info`
-> Para dejar el modo swarm, se debe usar `docker swaem leave`
+
+> Para dejar el modo swarm, se debe usar `docker swarm leave`
 
 ## Correr la demo
 
