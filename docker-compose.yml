@@ -1,0 +1,90 @@
+version: '3.4'
+
+volumes:
+  prometheus:
+  alertmanager:
+
+configs:
+  prom_config:
+    file: ./prometheus/prometheus.yml
+  alert_rules:
+    file: ./prometheus/alerts.yml
+  alertmanager:
+    file: ./alertmanager/alertmanager.yml
+
+services:
+  orbiter:
+    image: gianarb/orbiter:d2c82ad
+    command: daemon
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  app:
+    image: dockercloud/hello-world:latest
+    labels: [orbiter=true]
+    environment:
+      - SERVICE_PORTS=80
+      - VIRTUAL_HOST=*
+    deploy:
+      labels: [orbiter=true]
+      update_config:
+        parallelism: 1
+        delay: 3s
+      restart_policy:
+          condition: on-failure
+          delay: 3s
+          max_attempts: 3
+          window: 5s
+  lb:
+    image: dockercloud/haproxy:1.6.7
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 80:80
+    depends_on:
+      - app
+    environment:
+      - ADDITIONAL_SERVICES=project_dir:app
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 3s
+      restart_policy:
+          condition: on-failure
+          delay: 3s
+          max_attempts: 3
+          window: 5s
+  prometheus:
+    image: prom/prometheus:v2.1.0
+    ports:
+      - 9090:9090
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - prometheus:/data
+    configs:
+      - source: prom_config
+        target: /etc/prometheus/prometheus.yml
+      - source: alert_rules
+        target: /etc/prometheus/alerts.yml
+  haproxy_exporter:
+    image: prom/haproxy-exporter:v0.9.0
+    command:
+      - '--haproxy.scrape-uri=http://stats:stats@lb:1936/haproxy?stats;csv'
+
+  alertmanager:
+    image: prom/alertmanager:v0.13.0
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    volumes:
+      - alertmanager:/data
+    configs:
+      - source: alertmanager
+        target: /etc/alertmanager/alertmanager.yml
+  unsee:
+    image: cloudflare/unsee:v0.9.1
+    environment:
+      - "ALERTMANAGER_URIS=default:http://alertmanager:9093"
+    ports:
+      - 8080:8080
